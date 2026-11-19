@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
 
     /**
      * Seed the application's database: the ARO catalogue always; demo firm,
@@ -17,7 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(AroSeeder::class);
 
-        if (! app()->isProduction()) {
+        if (! app()->isProduction() || config('toza.demo_seed')) {
             $this->call(DemoSeeder::class);
         }
     }
