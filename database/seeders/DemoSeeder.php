@@ -25,24 +25,40 @@ use Illuminate\Database\Seeder;
  */
 final class DemoSeeder extends Seeder
 {
+        private function user(string $email, string $name, bool $isAdvocate = false): User
+    {
+        $user = User::query()->firstOrCreate(
+            ['email' => $email],
+            ['name' => $name, 'password' => 'password', 'email_verified_at' => now()],
+        );
+        $user->forceFill(['is_advocate' => $isAdvocate, 'active' => true])->save();
+
+        return $user;
+    }
+
     public function run(): void
     {
-        $owner = User::query()->firstOrCreate(
-            ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => 'password', 'email_verified_at' => now()],
-        );
-        $partner = User::query()->firstOrCreate(
-            ['email' => 'partner@example.com'],
-            ['name' => 'Second Partner', 'password' => 'password', 'email_verified_at' => now()],
-        );
+                // The demo team: one user per contract role. Every password is "password".
+        // Roles are the interim firm roles until Phase 2 renames them
+        // (owner/admin -> admin, advocate -> partner/associate, accounts).
+        $owner = $this->user('test@example.com', 'Wanjiru Kimondo', isAdvocate: true);
+        $partner = $this->user('partner@example.com', 'Peter Otieno', isAdvocate: true);
+        $associate = $this->user('associate@example.com', 'Amina Hassan', isAdvocate: true);
+        $accounts = $this->user('accounts@example.com', 'Brian Mwangi');
 
         $firm = Firm::query()->firstOrCreate(
             ['name' => 'Kimondo & Co. Advocates'],
             ['kra_pin' => 'P051234567X', 'lsk_firm_number' => 'LSK/F/1234', 'address' => "Reinsurance Plaza, 4th Floor\nTaifa Road, Nairobi", 'email' => 'accounts@kimondo.co.ke', 'phone' => '+254 700 000 000', 'vat_registered' => true, 'bill_number_prefix' => 'KC'],
         );
-        $firm->users()->syncWithoutDetaching([$owner->id => ['role' => FirmRole::Owner->value], $partner->id => ['role' => FirmRole::Admin->value]]);
-        $owner->forceFill(['current_firm_id' => $firm->id])->save();
-        $partner->forceFill(['current_firm_id' => $firm->id])->save();
+        $firm->users()->syncWithoutDetaching([
+            $owner->id => ['role' => FirmRole::Owner->value],
+            $partner->id => ['role' => FirmRole::Admin->value],
+            $associate->id => ['role' => FirmRole::Advocate->value],
+            $accounts->id => ['role' => FirmRole::Accounts->value],
+        ]);
+        foreach ([$owner, $partner, $associate, $accounts] as $member) {
+            $member->forceFill(['current_firm_id' => $firm->id])->save();
+        }
 
         app(CurrentFirm::class)->set($firm);
 
