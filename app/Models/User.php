@@ -15,6 +15,8 @@ use Illuminate\Support\Carbon;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -30,6 +32,11 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $lsk_number
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ *  * @property string|null $public_id
+ * @property bool $active
+ * @property bool $is_advocate
+ * @property Carbon|null $last_login_at
+ * @property string|null $avatar_url
  */
 #[Fillable(['name', 'email', 'password', 'lsk_number'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -58,6 +65,21 @@ class User extends Authenticatable implements PasskeyUser
         return $firms->firstWhere('id', $this->current_firm_id) ?? $firms->first();
     }
 
+    /**
+     * Assign the opaque API id on insert. Done here rather than in a model
+     * event so it also happens when seeding with events disabled.
+     *
+     * @param  Builder<static>  $query
+     */
+    protected function performInsert(Builder $query): bool
+    {
+        if (empty($this->public_id)) {
+            $this->public_id = (string) Str::ulid();
+        }
+
+        return parent::performInsert($query);
+    }
+
     public function roleIn(Firm $firm): ?FirmRole
     {
         $membership = $this->firms()->whereKey($firm->id)->first();
@@ -74,6 +96,9 @@ class User extends Authenticatable implements PasskeyUser
     protected function casts(): array
     {
         return [
+            'active' => 'boolean',
+            'is_advocate' => 'boolean',
+            'last_login_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
