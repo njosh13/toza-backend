@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\RateLimiter; 
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRateLimiting();
 
         Gate::policy(Bill::class, BillPolicy::class);
         Gate::policy(ChargeableItem::class, ChargeableItemPolicy::class);
@@ -58,5 +63,20 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+        /**
+     * Limiters for the /api/v1 routes: sign-in attempts per email + IP, and
+     * the (CPU-heavy) fee calculation per user.
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by(
+            Str::lower((string) $request->input('email')).'|'.$request->ip(),
+        ));
+
+        RateLimiter::for('calculate', fn (Request $request) => Limit::perMinute(60)->by(
+            (string) ($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
     }
 }
