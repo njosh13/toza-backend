@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use App\Auth\HasOwnWork;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * @property string $id
@@ -59,12 +61,13 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, BillLine> $lines
  * @property-read Collection<int, BillEvent> $events
  * @property-read Collection<int, Payment> $payments
+ * @property int|null $created_by
  */
 #[UseFactory(BillFactory::class)]
 final class Bill extends Model
 {
     /** @use HasFactory<BillFactory> */
-    use BelongsToFirm, HasFactory, HasUuids, SoftDeletes;
+    use BelongsToFirm, HasFactory, HasOwnWork, HasUuids, SoftDeletes;
 
     /** Columns that may still change once a bill is locked (lifecycle only, never money). */
     public const MUTABLE_AFTER_LOCK = [
@@ -73,7 +76,7 @@ final class Bill extends Model
     ];
 
     protected $fillable = [
-        'matter_id', 'client_id', 'number', 'type', 'cost_basis', 'aro_version_id', 'status',
+        'matter_id', 'client_id', 'created_by', 'number', 'type', 'cost_basis', 'aro_version_id', 'status',
         'fees_cents', 'recharges_cents', 'disbursements_cents', 'vat_cents', 'wht_expected_cents', 'total_cents',
         'paid_cents', 'issued_at', 'issued_by', 'delivered_at', 'delivery_method', 'deemed_agreed_at', 'disputed_at',
         'interest_claimed_at', 'paid_in_full_at', 'computed_snapshot', 'pdf_path', 'original_bill_id', 'locked_at',
@@ -101,6 +104,13 @@ final class Bill extends Model
                 throw new BillLockedException("Bill {$bill->number} is locked and cannot be deleted; void it with a credit note.");
             }
         });
+    }
+
+        /** A bill is an associate's own work when they created it or are responsible for its matter. */
+    protected function ownWorkConstraint(Builder $query, int $userId): void
+    {
+        $query->where($this->qualifyColumn('created_by'), $userId)
+            ->orWhereIn($this->qualifyColumn('matter_id'), Matter::query()->ownWork($userId)->select('matters.id'));
     }
 
     /** @return BelongsTo<Matter, $this> */
