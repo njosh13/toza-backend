@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Team\TeamMembers;
 use App\Http\Api\ApiResponse;
 use App\Http\Api\ListQuery;
 use App\Http\Api\ListSpec;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreUserRequest;
+use App\Http\Requests\Api\UpdateUserRequest;
 use App\Http\Resources\Api\UserResource;
 use App\Models\User;
 use App\Tenancy\CurrentFirm;
@@ -16,7 +19,7 @@ use Illuminate\Http\Request;
 
 final class UserController extends Controller
 {
-    public function __construct(private readonly CurrentFirm $currentFirm) {}
+    public function __construct(private readonly CurrentFirm $currentFirm, private readonly TeamMembers $team) {}
 
     /**
      * GET /users: the current firm's members. Open to every signed-in user
@@ -42,5 +45,31 @@ final class UserController extends Controller
         );
 
         return ApiResponse::paginated(ListQuery::paginate($query, $request, $spec), UserResource::class);
+    }
+
+    /** POST /users (team.manage): add a member to the current firm and send the invitation. */
+    public function store(StoreUserRequest $request): JsonResponse
+    {
+        $firm = $this->currentFirm->get();
+
+        abort_if($firm === null, 403, 'You are not a member of a firm yet.');
+
+        /** @var array{name: string, email: string, role: string, is_advocate?: bool} $data */
+        $data = $request->validated();
+
+        return ApiResponse::item(new UserResource($this->team->create($firm, $data)), 201);
+    }
+
+    /** PATCH|PUT /users/{user} (team.manage). No delete: users are deactivated. */
+    public function update(UpdateUserRequest $request, string $user): JsonResponse
+    {
+        $firm = $this->currentFirm->get();
+
+        abort_if($firm === null, 403, 'You are not a member of a firm yet.');
+
+        /** @var User $actor */
+        $actor = $request->user();
+
+        return ApiResponse::item(new UserResource($this->team->update($firm, $actor, $request->target(), $request->validated())));
     }
 }
