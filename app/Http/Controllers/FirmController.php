@@ -31,7 +31,7 @@ final class FirmController extends Controller
 
         $firm = DB::transaction(function () use ($request, $user) {
             $firm = Firm::create($request->validated());
-            $firm->users()->attach($user->id, ['role' => FirmRole::Owner->value]);
+            $firm->users()->attach($user->id, ['role' => FirmRole::Admin->value]);
             $user->forceFill(['current_firm_id' => $firm->id])->save();
 
             return $firm;
@@ -39,7 +39,7 @@ final class FirmController extends Controller
 
         $currentFirm->set($firm);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Firm created. You are its owner.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Firm created. You are its administrator.')]);
 
         return to_route('dashboard');
     }
