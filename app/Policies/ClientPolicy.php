@@ -24,11 +24,11 @@ final class ClientPolicy
 
     public function create(User $user): bool
     {
-        return (bool) $this->role($user)?->canWrite();
+        return $this->role($user) !== null;
     }
 
     public function update(User $user, Client $client): bool
     {
-        return (bool) $this->role($user)?->canWrite();
+        return $this->role($user) !== null;
     }
 }
