@@ -12,7 +12,7 @@ export default function FirmCreate({ hasFirm }: { hasFirm: boolean }) {
             <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
                 <Heading
                     title={hasFirm ? 'Add another firm' : 'Set up your firm'}
-                    description="Every client, matter and bill belongs to a firm. You become its owner."
+                    description="Every client, matter and bill belongs to a firm. You become its administrator."
                 />
                 <Card>
                     <CardContent>
