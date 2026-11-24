@@ -4,42 +4,73 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Auth\Action;
+
+/** The four roles of the API contract. The string values are the wire values. */
 enum FirmRole: string
 {
-    case Owner = 'owner';
     case Admin = 'admin';
-    case Advocate = 'advocate';
+    case Partner = 'partner';
+    case Associate = 'associate';
     case Accounts = 'accounts';
-    case ReadOnly = 'readonly';
 
     public function label(): string
     {
         return match ($this) {
-            self::Owner => 'Owner',
-            self::Admin => 'Admin',
-            self::Advocate => 'Advocate',
+            self::Admin => 'Administrator',
+            self::Partner => 'Partner',
+            self::Associate => 'Associate',
             self::Accounts => 'Accounts',
-            self::ReadOnly => 'Read only',
         };
     }
 
+    /**
+     * The role matrix (api-contract section 2). The single source of truth:
+     * every policy and gate reads it through allows().
+     *
+     * @return list<Action>
+     */
+    public function actions(): array
+    {
+        return match ($this) {
+            self::Partner => [
+                Action::EstimateWrite, Action::BillWrite, Action::BillReview, Action::BillIssue,
+                Action::PaymentRecord, Action::PaymentVoid, Action::BillWriteOff, Action::FloorOverride,
+                Action::EngagementWrite, Action::TaxationWrite, Action::ReportsFirm, Action::DataFirm,
+            ],
+            self::Associate => [
+                Action::EstimateWrite, Action::BillWrite, Action::PaymentRecord,
+                Action::EngagementWrite, Action::TaxationWrite, Action::ReportsFirm,
+            ],
+            self::Accounts => [Action::PaymentRecord, Action::ReportsFirm, Action::DataFirm],
+            self::Admin => [Action::ReportsFirm, Action::DataFirm, Action::SettingsManage, Action::TeamManage, Action::AuditView],
+        };
+    }
+
+    public function allows(Action $action): bool
+    {
+        return in_array($action, $this->actions(), true);
+    }
+
+    /** Firm profile, wording, ARO review and publishing. */
     public function canManageFirm(): bool
     {
-        return in_array($this, [self::Owner, self::Admin], true);
+        return $this->allows(Action::SettingsManage);
     }
 
     public function canBill(): bool
     {
-        return in_array($this, [self::Owner, self::Admin, self::Advocate], true);
+        return $this->allows(Action::BillWrite);
     }
 
     public function canRecordPayments(): bool
     {
-        return in_array($this, [self::Owner, self::Admin, self::Accounts], true);
+        return $this->allows(Action::PaymentRecord);
     }
 
-    public function canWrite(): bool
+    /** Roles that see only their own work (the ownership scope applies). */
+    public function seesOnlyOwnWork(): bool
     {
-        return $this !== self::ReadOnly;
+        return ! $this->allows(Action::DataFirm);
     }
 }
