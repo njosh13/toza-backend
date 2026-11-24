@@ -7,6 +7,7 @@ namespace App\Policies;
 use App\Domain\Aro\Models\AroVersion;
 use App\Models\User;
 use App\Policies\Concerns\ResolvesFirmRole;
+use App\Auth\Action;
 
 /**
  * The ARO catalogue is global data. Any member may browse it; firm owners and
@@ -28,11 +29,11 @@ final class AroVersionPolicy
 
     public function review(User $user, AroVersion $version): bool
     {
-        return (bool) $this->role($user)?->canManageFirm();
+        return $this->holds($user, Action::SettingsManage);
     }
 
     public function publish(User $user, AroVersion $version): bool
     {
-        return (bool) $this->role($user)?->canManageFirm();
+        return $this->holds($user, Action::SettingsManage);
     }
 }
