@@ -52,6 +52,7 @@ final class BillAssembler
             $bill = new Bill([
                 'matter_id' => $matter->id,
                 'client_id' => $matter->client_id,
+                'created_by' => $user->getKey(),
                 'type' => $type,
                 'cost_basis' => $costBasis,
                 'aro_version_id' => $version->id,
