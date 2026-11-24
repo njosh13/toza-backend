@@ -19,6 +19,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\RateLimiter; 
 use Illuminate\Support\Str;
+use App\Auth\Action;
+use App\Models\User;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -37,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureRateLimiting();
+        $this->defineActionGates();
 
         Gate::policy(Bill::class, BillPolicy::class);
         Gate::policy(ChargeableItem::class, ChargeableItemPolicy::class);
@@ -78,5 +81,22 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('calculate', fn (Request $request) => Limit::perMinute(60)->by(
             (string) ($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
+    }
+
+        /**
+     * One Gate ability per contract action key ('bill.issue', 'team.manage'...),
+     * answered from the role matrix for the user's role in the current firm.
+     * A user with no role in the current firm holds none of them.
+     */
+    protected function defineActionGates(): void
+    {
+        foreach (Action::cases() as $action) {
+            Gate::define($action->value, function (User $user) use ($action): bool {
+                $firm = app(CurrentFirm::class)->get();
+                $role = $firm === null ? null : $user->roleIn($firm);
+
+                return $role?->allows($action) ?? false;
+            });
+        }
     }
 }
