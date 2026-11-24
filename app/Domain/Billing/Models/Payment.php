@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use App\Auth\HasOwnWork;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * @property string $id
@@ -26,12 +28,18 @@ use Illuminate\Support\Carbon;
  */
 final class Payment extends Model
 {
-    use BelongsToFirm, HasUuids;
+    use BelongsToFirm, HasOwnWork, HasUuids;
 
     protected $fillable = [
         'bill_id', 'amount_cents', 'method', 'reference', 'received_at', 'allocated_to',
         'wht_certificate_reference', 'notes', 'recorded_by',
     ];
+
+        /** A payment is an associate's own work when it is on one of their bills. */
+    protected function ownWorkConstraint(Builder $query, int $userId): void
+    {
+        $query->whereIn($this->qualifyColumn('bill_id'), Bill::query()->ownWork($userId)->select('bills.id'));
+    }
 
     /** @return BelongsTo<Bill, $this> */
     public function bill(): BelongsTo
