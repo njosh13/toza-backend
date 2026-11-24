@@ -21,6 +21,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use App\Auth\HasOwnWork;
+use App\Enums\FirmRole;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * @property string $id
@@ -37,17 +40,47 @@ use Illuminate\Support\Carbon;
  * @property-read Client $client
  * @property-read MatterClassification|null $classification
  * @property-read int|null $unbilled_count
+ * @property int|null $responsible_advocate_id
  */
 #[UseFactory(MatterFactory::class)]
 final class Matter extends Model
 {
     /** @use HasFactory<MatterFactory> */
-    use BelongsToFirm, HasFactory, HasUuids, SoftDeletes;
+    use BelongsToFirm, HasFactory, HasOwnWork, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'client_id', 'title', 'reference', 'court_level', 'cause_number', 'description',
         'value_cents', 'status', 'opened_on',
+        'responsible_advocate_id',
     ];
+
+        protected static function booted(): void
+    {
+        // A matter an associate opens with no responsible advocate is theirs,
+        // otherwise they could create a matter they are then not allowed to see.
+        self::creating(function (self $matter): void {
+            $user = auth()->user();
+
+            if ($matter->responsible_advocate_id === null
+                && $user instanceof User
+                && $matter->firm_id !== null
+                && $user->roleIn(Firm::query()->findOrFail($matter->firm_id)) === FirmRole::Associate) {
+                $matter->responsible_advocate_id = $user->getKey();
+            }
+        });
+    }
+
+    /** A matter is an associate's own work when they are its responsible advocate. */
+    protected function ownWorkConstraint(Builder $query, int $userId): void
+    {
+        $query->where($this->qualifyColumn('responsible_advocate_id'), $userId);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function responsibleAdvocate(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_advocate_id');
+    }
 
     /** @return BelongsTo<Client, $this> */
     public function client(): BelongsTo
