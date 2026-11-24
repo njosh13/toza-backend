@@ -7,6 +7,7 @@ namespace App\Policies;
 use App\Models\Firm;
 use App\Models\User;
 use App\Policies\Concerns\ResolvesFirmRole;
+use App\Auth\Action;
 
 final class FirmPolicy
 {
@@ -24,11 +25,11 @@ final class FirmPolicy
 
     public function update(User $user, Firm $firm): bool
     {
-        return (bool) $this->role($user, $firm)?->canManageFirm();
+        return $this->holds($user, Action::SettingsManage, $firm);
     }
 
     public function manageAro(User $user, Firm $firm): bool
     {
-        return (bool) $this->role($user, $firm)?->canManageFirm();
+        return $this->holds($user, Action::SettingsManage, $firm);
     }
 }
