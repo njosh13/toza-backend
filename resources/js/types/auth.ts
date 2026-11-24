@@ -16,7 +16,7 @@ export type CurrentFirm = {
     vat_registered: boolean;
     default_cost_basis: 'party_party' | 'advocate_client';
     rounding_policy: string;
-    role: 'owner' | 'admin' | 'advocate' | 'accounts' | 'readonly' | null;
+    role: 'admin' | 'partner' | 'associate' | 'accounts' | null;
 };
 
 export type Auth = {
