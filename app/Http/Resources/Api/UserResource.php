@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Api;
 
 use App\Models\User;
-use App\Support\ApiRole;
+use App\Enums\FirmRole;
 use App\Tenancy\CurrentFirm;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -45,11 +45,11 @@ final class UserResource extends JsonResource
         $joined = $user->getAttribute('membership_role');
 
         if (is_string($joined)) {
-            return ApiRole::from($joined);
+            return FirmRole::tryFrom($joined)?->value;
         }
 
         $firm = app(CurrentFirm::class)->get();
 
-        return $firm === null ? null : ApiRole::from($user->roleIn($firm));
+        return $firm === null ? null : $user->roleIn($firm)?->value;
     }
 }
