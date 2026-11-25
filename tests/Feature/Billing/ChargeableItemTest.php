@@ -194,9 +194,9 @@ it('stores a disbursement without pricing it', function () {
         ->entered_cents->toBe(400_000_00);
 });
 
-it('forbids read-only members from adding work', function () {
+it('forbids accounts staff from adding work', function () {
     $firm = Firm::factory()->create();
-    actingAsMemberOf($firm, FirmRole::ReadOnly);
+    actingAsMemberOf($firm, FirmRole::Accounts);
     $matter = conveyancingMatter($firm);
 
     $this->post(route('matters.chargeable-items.store', $matter), feeLine())->assertForbidden();
