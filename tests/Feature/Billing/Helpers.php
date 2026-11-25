@@ -20,7 +20,7 @@ function seedPublishedAro(): AroVersion
 }
 
 /** Sign in as a member of a firm and make it the request's current firm. */
-function actingAsMemberOf(Firm $firm, FirmRole $role = FirmRole::Owner): User
+function actingAsMemberOf(Firm $firm, FirmRole $role = FirmRole::Partner): User
 {
     $user = User::factory()->create(['current_firm_id' => $firm->id]);
     $firm->users()->attach($user, ['role' => $role->value]);
