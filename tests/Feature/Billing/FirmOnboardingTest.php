@@ -6,7 +6,7 @@ use App\Enums\FirmRole;
 use App\Models\Firm;
 use App\Models\User;
 
-it('creates a firm and makes the creator its owner', function () {
+it('makes the creator its administrator', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -21,7 +21,7 @@ it('creates a firm and makes the creator its owner', function () {
 
     $firm = Firm::query()->where('name', 'Kimondo & Co. Advocates')->firstOrFail();
 
-    expect($user->refresh()->roleIn($firm))->toBe(FirmRole::Owner)
+    expect($user->refresh()->roleIn($firm))->toBe(FirmRole::Admin)
         ->and($user->current_firm_id)->toBe($firm->id);
 });
 
@@ -32,9 +32,9 @@ it('requires a name and known rounding policy', function () {
         ->assertSessionHasErrors(['name', 'rounding_policy', 'default_cost_basis', 'bill_number_prefix']);
 });
 
-it('lets only owners and admins edit firm settings', function () {
+it('lets only administrators edit firm settings', function () {
     $firm = Firm::factory()->create();
-    actingAsMemberOf($firm, FirmRole::Advocate);
+    actingAsMemberOf($firm, FirmRole::Associate);
 
     $this->get(route('firm.edit'))->assertForbidden();
     $this->patch(route('firm.update'), ['name' => 'Renamed'])->assertForbidden();
