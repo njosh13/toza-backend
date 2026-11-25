@@ -9,12 +9,13 @@ use App\Models\Client;
 use App\Models\Firm;
 use App\Models\Matter;
 use Inertia\Testing\AssertableInertia as Assert;
+use App\Enums\FirmRole;
 
 beforeEach(fn () => seedPublishedAro());
 
-it('renders every advocate-facing page for a firm owner', function () {
+it('it renders every page for a firm administrator', function () {
     $firm = Firm::factory()->create();
-    actingAsMemberOf($firm);
+    actingAsMemberOf($firm, FirmRole::Admin);
     $client = Client::factory()->create(['firm_id' => $firm->id]);
     $matter = Matter::factory()->highCourt()->create(['firm_id' => $firm->id, 'client_id' => $client->id]);
     MatterClassification::factory()->head('S6.INSTR.DEFENDED', 5_000_000_00)->create(['matter_id' => $matter->id]);
