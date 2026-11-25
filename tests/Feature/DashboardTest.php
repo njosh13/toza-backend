@@ -30,7 +30,7 @@ class DashboardTest extends TestCase
     public function test_firm_members_can_visit_the_dashboard()
     {
         $user = User::factory()->create();
-        Firm::factory()->create()->users()->attach($user, ['role' => FirmRole::Owner->value]);
+        Firm::factory()->create()->users()->attach($user, ['role' => FirmRole::Partner->value]);
         $this->actingAs($user);
 
         $response = $this->get(route('dashboard'));
