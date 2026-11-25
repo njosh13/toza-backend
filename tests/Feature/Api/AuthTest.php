@@ -11,7 +11,7 @@ function apiUserKeys(): array
     return ['id', 'name', 'email', 'role', 'avatar_url', 'is_advocate', 'active', 'last_login_at', 'created_at', 'updated_at', 'unread_notifications_count'];
 }
 
-function memberWithPassword(FirmRole $role = FirmRole::Advocate, array $attributes = []): User
+function memberWithPassword(FirmRole $role = FirmRole::Partner, array $attributes = []): User
 {
     $firm = Firm::factory()->create();
     $user = User::factory()->create(['password' => 'secret-pass-1', 'current_firm_id' => $firm->id, ...$attributes]);
@@ -21,7 +21,7 @@ function memberWithPassword(FirmRole $role = FirmRole::Advocate, array $attribut
 }
 
 it('signs in and returns the contract user', function () {
-    $user = memberWithPassword(FirmRole::Advocate, ['is_advocate' => true]);
+    $user = memberWithPassword(FirmRole::Partner, ['is_advocate' => true]);
 
     $response = $this->postJson('/api/v1/auth/login', ['email' => $user->email, 'password' => 'secret-pass-1'])
         ->assertOk()
@@ -181,4 +181,11 @@ it('does not allow an unknown origin (CORS)', function () {
     ]);
 
     expect($response->headers->get('Access-Control-Allow-Origin'))->not->toBe('https://evil.example');
+});
+
+it('signs in whatever the case of the email address', function () {
+    $user = memberWithPassword();
+
+    $this->postJson('/api/v1/auth/login', ['email' => '  '.strtoupper($user->email).' ', 'password' => 'secret-pass-1'])
+        ->assertOk()->assertJsonPath('data.email', $user->email);
 });
