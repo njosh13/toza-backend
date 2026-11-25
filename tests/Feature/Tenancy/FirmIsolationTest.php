@@ -68,7 +68,7 @@ it('resolves the current firm from the user\'s chosen membership', function () {
     $a = Firm::factory()->create(['name' => 'Firm A']);
     $b = Firm::factory()->create(['name' => 'Firm B']);
     $user = actingAsMemberOf($a);
-    $b->users()->attach($user, ['role' => 'advocate']);
+    $b->users()->attach($user, ['role' => 'partner']);
     app(CurrentFirm::class)->forget();
 
     $this->put(route('current-firm.update'), ['firm_id' => $b->id])->assertRedirect(route('dashboard'));
