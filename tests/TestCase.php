@@ -19,7 +19,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** Sign in as a member of a fresh firm and make it the current firm. */
-    protected function actingAsMember(FirmRole $role = FirmRole::Owner, ?Firm $firm = null): User
+    protected function actingAsMember(FirmRole $role = FirmRole::Partner, ?Firm $firm = null): User
     {
         $firm ??= Firm::factory()->create();
         $user = User::factory()->create(['current_firm_id' => $firm->id]);
