@@ -17,8 +17,8 @@ function teamOf(Firm $firm, array $members): void
 
 it('lists the firm members in the contract list envelope', function () {
     $firm = Firm::factory()->create();
-    $me = $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true], ['Brian Mwangi', FirmRole::Accounts, false]]);
+    $me = $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true], ['Brian Mwangi', FirmRole::Accounts, false]]);
 
     $this->getJson('/api/v1/users')
         ->assertOk()
@@ -35,18 +35,18 @@ it('lists the firm members in the contract list envelope', function () {
 
 it('reports each member\'s role in the current firm', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true], ['Brian Mwangi', FirmRole::Accounts, false]]);
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true], ['Brian Mwangi', FirmRole::Accounts, false]]);
 
     $roles = collect($this->getJson('/api/v1/users')->json('data'))->pluck('role', 'name');
 
-    expect($roles['Amina Hassan'])->toBe('partner')->and($roles['Brian Mwangi'])->toBe('accounts');
+    expect($roles['Amina Hassan'])->toBe('associate')->and($roles['Brian Mwangi'])->toBe('accounts');
 });
 
 it('never lists another firm\'s users', function () {
     $mine = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $mine);
-    teamOf(Firm::factory()->create(), [['Outsider One', FirmRole::Advocate, true]]);
+    $this->actingAsMember(FirmRole::Partner, $mine);
+    teamOf(Firm::factory()->create(), [['Outsider One', FirmRole::Associate, true]]);
 
     $names = collect($this->getJson('/api/v1/users')->json('data'))->pluck('name');
 
@@ -55,8 +55,8 @@ it('never lists another firm\'s users', function () {
 
 it('filters advocates for the responsible-advocate dropdown', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true], ['Brian Mwangi', FirmRole::Accounts, false], ['Zawadi Njoki', FirmRole::Advocate, true]]);
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true], ['Brian Mwangi', FirmRole::Accounts, false], ['Zawadi Njoki', FirmRole::Associate, true]]);
 
     $response = $this->getJson('/api/v1/users?filter[is_advocate]=true&per_page=100&sort=name')->assertOk();
 
@@ -65,8 +65,8 @@ it('filters advocates for the responsible-advocate dropdown', function () {
 
 it('sorts by name, descending with a minus sign', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true], ['Zawadi Njoki', FirmRole::Advocate, true]]);
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true], ['Zawadi Njoki', FirmRole::Associate, true]]);
 
     $names = collect($this->getJson('/api/v1/users?sort=-name&filter[is_advocate]=true')->json('data'))->pluck('name')->all();
 
@@ -75,8 +75,8 @@ it('sorts by name, descending with a minus sign', function () {
 
 it('falls back to the default sort for an unknown sort field', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true], ['Zawadi Njoki', FirmRole::Advocate, true]]);
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true], ['Zawadi Njoki', FirmRole::Associate, true]]);
 
     $names = collect($this->getJson('/api/v1/users?sort=password&filter[is_advocate]=true')->json('data'))->pluck('name')->all();
 
@@ -85,8 +85,8 @@ it('falls back to the default sort for an unknown sort field', function () {
 
 it('searches name and email case-insensitively', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true], ['Brian Mwangi', FirmRole::Accounts, false]]);
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true], ['Brian Mwangi', FirmRole::Accounts, false]]);
 
     $names = collect($this->getJson('/api/v1/users?q=AMINA')->json('data'))->pluck('name')->all();
 
@@ -95,16 +95,16 @@ it('searches name and email case-insensitively', function () {
 
 it('treats % and _ in a search as literal characters', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, [['Amina Hassan', FirmRole::Advocate, true]]);
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, [['Amina Hassan', FirmRole::Associate, true]]);
 
     $this->getJson('/api/v1/users?q=%25')->assertOk()->assertJsonPath('meta.total', 0);
 });
 
 it('caps per_page at 100 and paginates with links', function () {
     $firm = Firm::factory()->create();
-    $this->actingAsMember(FirmRole::Owner, $firm);
-    teamOf($firm, array_map(fn ($i) => ["Member {$i}", FirmRole::Advocate, true], range(1, 20)));
+    $this->actingAsMember(FirmRole::Partner, $firm);
+    teamOf($firm, array_map(fn ($i) => ["Member {$i}", FirmRole::Associate, true], range(1, 20)));
 
     $this->getJson('/api/v1/users?per_page=500')->assertJsonPath('meta.per_page', 100);
 
