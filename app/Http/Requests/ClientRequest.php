@@ -7,6 +7,8 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Models\Client;
+use App\Tenancy\CurrentFirm;
 
 final class ClientRequest extends FormRequest
 {
@@ -15,7 +17,9 @@ final class ClientRequest extends FormRequest
     {
         return [
             'full_name' => ['required', 'string', 'max:255'],
-            'client_number' => ['nullable', 'string', 'max:50'],
+            'client_number' => ['nullable', 'string', 'max:50', Rule::unique(Client::class, 'client_number')
+    ->where('firm_id', app(CurrentFirm::class)->id())
+    ->ignore($this->route('client')?->getKey())],
             'client_type' => ['required', Rule::in(['individual', 'company', 'government'])],
             'kra_pin' => ['nullable', 'string', 'max:20'],
             'id_number' => ['nullable', 'string', 'max:50'],
