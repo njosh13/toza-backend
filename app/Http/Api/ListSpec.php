@@ -15,6 +15,7 @@ final class ListSpec
      * @param  array<string, string>  $sortable  API field => column
      * @param  list<string>  $searchable  columns searched by `q`
      * @param  array<string, string|array{0: string, 1: string}>  $filters
+     * @param  \Closure(Builder<Model>, string): void|null  $extraSearch  adds OR-conditions to the `q` group, receiving the LIKE pattern
      */
     public function __construct(
         public readonly array $sortable,
@@ -23,5 +24,6 @@ final class ListSpec
         public readonly array $filters = [],
         public readonly int $defaultPerPage = 15,
         public readonly int $maxPerPage = 100,
+        public readonly ?\Closure $extraSearch = null,
     ) {}
 }
