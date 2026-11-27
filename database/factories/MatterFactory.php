@@ -21,7 +21,7 @@ final class MatterFactory extends Factory
             'firm_id' => Firm::factory(),
             'client_id' => fn (array $attributes) => Client::factory()->create(['firm_id' => $attributes['firm_id']])->id,
             'title' => 'Sale of LR No. '.fake()->numerify('####/##'),
-            'reference' => 'M/'.fake()->numerify('####'),
+            'reference' => 'M/'.fake()->unique()->numerify('####'),
             'court_level' => CourtLevel::None,
             'status' => 'open',
             'opened_on' => now()->toDateString(),
