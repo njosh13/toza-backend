@@ -9,6 +9,8 @@ use App\Models\Client;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Models\Matter;
+use App\Tenancy\CurrentFirm;
 
 final class MatterRequest extends FormRequest
 {
@@ -18,7 +20,9 @@ final class MatterRequest extends FormRequest
         return [
             'client_id' => ['required', Rule::exists(Client::class, 'id')],
             'title' => ['required', 'string', 'max:255'],
-            'reference' => ['nullable', 'string', 'max:100'],
+            'reference' => ['nullable', 'string', 'max:100', Rule::unique(Matter::class, 'reference')
+    ->where('firm_id', app(CurrentFirm::class)->id())
+    ->ignore($this->route('matter')?->getKey())],
             'court_level' => ['required', Rule::enum(CourtLevel::class)],
             'cause_number' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:5000'],
