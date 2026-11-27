@@ -21,10 +21,13 @@ use Illuminate\Support\Str;
 final class Visible
 {
     /**
+     * One record of the current firm by id, for models with no ownership scope
+     * (clients): 404 when it does not exist, is malformed, or is another firm's.
+     *
      * @template TModel of Model
      *
-     * @param  class-string<TModel>  $modelClass  a model using HasOwnWork
-     * @return Builder<TModel>
+     * @param  class-string<TModel>  $modelClass
+     * @return TModel
      */
     public static function scopedList(string $modelClass, Request $request, User $user): Builder
     {
@@ -112,5 +115,20 @@ final class Visible
         $firm = app(CurrentFirm::class)->get();
 
         return ($firm === null ? null : $user->roleIn($firm))?->seesOnlyOwnWork() ?? true;
+    }
+
+    public static function open(string $modelClass, string $id): Model
+    {
+        if (! Str::isUuid($id)) {
+            abort(404, 'Not found.');
+        }
+
+        return $modelClass::query()->whereKey($id)->firstOr(fn () => abort(404, 'Not found.'));
+    }
+
+    /** The integer id of the current firm's member with this public id (null when there is none). */
+    public static function memberIdFor(string $publicId): ?int
+    {
+        return self::memberId($publicId);
     }
 }
