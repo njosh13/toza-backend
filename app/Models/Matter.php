@@ -24,6 +24,8 @@ use Illuminate\Support\Carbon;
 use App\Auth\HasOwnWork;
 use App\Enums\FirmRole;
 use Illuminate\Database\Eloquent\Builder;
+use App\Enums\Forum;
+use App\Enums\MatterType;
 
 /**
  * @property string $id
@@ -41,6 +43,10 @@ use Illuminate\Database\Eloquent\Builder;
  * @property-read MatterClassification|null $classification
  * @property-read int|null $unbilled_count
  * @property int|null $responsible_advocate_id
+ *  * @property MatterType $matter_type
+ * @property Forum $forum
+ * @property Carbon|null $completed_on
+ * @property Carbon|null $schedule5_election_notice_on
  */
 #[UseFactory(MatterFactory::class)]
 final class Matter extends Model
@@ -49,13 +55,31 @@ final class Matter extends Model
     use BelongsToFirm, HasFactory, HasOwnWork, HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'client_id', 'title', 'reference', 'court_level', 'cause_number', 'description',
-        'value_cents', 'status', 'opened_on',
-        'responsible_advocate_id',
+        'client_id', 'responsible_advocate_id', 'title', 'reference', 'court_level', 'cause_number', 'description',
+        'value_cents', 'status', 'opened_on', 'matter_type', 'forum', 'completed_on', 'schedule5_election_notice_on',
     ];
 
         protected static function booted(): void
     {
+        self::saving(function (self $matter): void {
+            // matter_type/forum and the legacy court_level describe the same thing.
+            // Whichever side was written drives the other.
+            $matter->court_level ??= CourtLevel::None;
+
+            $typeWritten = $matter->isDirty('matter_type');
+            $levelWritten = $matter->isDirty('court_level');
+            $forumWritten = $matter->isDirty('forum');
+
+            if ($typeWritten) {
+                $matter->court_level = $matter->matter_type->courtLevel();
+            } elseif ($levelWritten || ! $matter->exists) {
+                $matter->matter_type = MatterType::fromCourtLevel($matter->court_level);
+            }
+
+            if (! $forumWritten && ($levelWritten || ! $matter->exists)) {
+                $matter->forum = Forum::fromCourtLevel($matter->court_level);
+            }
+        });
         // A matter an associate opens with no responsible advocate is theirs,
         // otherwise they could create a matter they are then not allowed to see.
         self::creating(function (self $matter): void {
@@ -142,6 +166,16 @@ final class Matter extends Model
             'court_level' => CourtLevel::class,
             'value_cents' => 'integer',
             'opened_on' => 'date',
+            'matter_type' => MatterType::class,
+            'forum' => Forum::class,
+            'completed_on' => 'date',
+            'schedule5_election_notice_on' => 'date',
         ];
+    }
+
+    /** The Schedule of the Order, derived from the matter type. */
+    public function schedule(): int
+    {
+        return $this->matter_type->schedule();
     }
 }
