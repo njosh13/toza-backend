@@ -18,6 +18,7 @@ final class ClientFactory extends Factory
         return [
             'firm_id' => Firm::factory(),
             'full_name' => fake()->name(),
+            'client_number' => 'CL-'.fake()->unique()->numerify('######'),
             'client_type' => 'individual',
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->phoneNumber(),
