@@ -40,7 +40,7 @@ final class ListQuery
     {
         $term = trim($term);
 
-        if ($term === '' || $spec->searchable === []) {
+        if ($term === '' || ($spec->searchable === [] && $spec->extraSearch === null)) {
             return;
         }
 
@@ -51,6 +51,9 @@ final class ListQuery
         $query->where(function (Builder $q) use ($spec, $like, $grammar): void {
             foreach ($spec->searchable as $column) {
                 $q->orWhereRaw('LOWER('.$grammar->wrap($column).") LIKE ? ESCAPE '\\'", [$like]);
+            }
+            if ($spec->extraSearch !== null) {
+                $q->orWhere(fn (Builder $inner) => ($spec->extraSearch)($inner, $like));
             }
         });
     }
