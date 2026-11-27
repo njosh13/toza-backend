@@ -50,4 +50,16 @@ final class Client extends Model
     {
         return ['is_withholding_agent' => 'boolean', 'is_vat_exempt' => 'boolean'];
     }
+
+    /** The contract's type: `individual` or `corporate` (a company or a government body). */
+    public function apiType(): string
+    {
+        return $this->client_type === 'individual' ? 'individual' : 'corporate';
+    }
+
+    /** The stored type for a contract type. */
+    public static function storedType(string $apiType): string
+    {
+        return $apiType === 'corporate' ? 'company' : 'individual';
+    }
 }
