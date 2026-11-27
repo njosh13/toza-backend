@@ -29,6 +29,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $default_cost_basis
  * @property string $bill_number_prefix
  * @property int $bill_sequence
+ * @property list<string>|null $address_lines
+ * @property string|null $website
+ * @property string|null $logo_url
+ * @property string|null $logo_path
+ * @property array<string, mixed>|null $defaults
  */
 #[UseFactory(FirmFactory::class)]
 final class Firm extends Model
@@ -39,7 +44,47 @@ final class Firm extends Model
     protected $fillable = [
         'name', 'plan', 'kra_pin', 'lsk_firm_number', 'address', 'email', 'phone',
         'vat_registered', 'rounding_policy', 'default_cost_basis', 'bill_number_prefix',
+        'address_lines', 'website', 'logo_url', 'logo_path', 'defaults', ...self::WORDING,
     ];
+
+    /** Wording blocks, each a list of paragraphs or lines (api-contract section 15). */
+public const WORDING = [
+    'estimate_terms', 'bill_terms', 'engagement_terms', 'election_notice',
+    'certificate_62a', 'certificate_68a', 'bank_details', 'mpesa_details',
+];
+
+/** Defaults of `defaults` (api-contract section 15). */
+public const DEFAULT_SETTINGS = [
+    'require_second_reviewer' => false,
+    'floor_protection_mode' => 'warn',
+    'reminder_lead_days' => [7, 3, 1],
+];
+
+protected static function booted(): void
+{
+    // The legacy single-text address and the contract's list of lines stay in step.
+    self::saving(function (self $firm): void {
+        if ($firm->isDirty('address_lines') && ! $firm->isDirty('address')) {
+            $firm->address = $firm->address_lines === null ? null : implode("\n", $firm->address_lines);
+        } elseif ($firm->isDirty('address') && ! $firm->isDirty('address_lines')) {
+            $firm->address_lines = $firm->address === null
+                ? null
+                : array_values(array_filter(array_map('trim', preg_split('/\R/', $firm->address) ?: [])));
+        }
+    });
+}
+
+    /**
+     * The firm's defaults with the stored values merged over the built-in ones.
+     *
+     * @return array{require_second_reviewer: bool, floor_protection_mode: string, reminder_lead_days: list<int>}
+     */
+
+    public function settings(): array
+    {
+        /** @var array{require_second_reviewer: bool, floor_protection_mode: string, reminder_lead_days: list<int>} */
+        return [...self::DEFAULT_SETTINGS, ...($this->defaults ?? [])];
+    }
 
     /** @return BelongsToMany<User, $this, FirmUser> */
     public function users(): BelongsToMany
@@ -75,6 +120,12 @@ final class Firm extends Model
 
     protected function casts(): array
     {
-        return ['vat_registered' => 'boolean', 'bill_sequence' => 'integer'];
+        return [
+            'vat_registered' => 'boolean',
+            'bill_sequence' => 'integer',
+            'address_lines' => 'array',
+            'defaults' => 'array',
+            ...array_fill_keys(self::WORDING, 'array'),
+        ];
     }
 }
